@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO.Ports;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -12,17 +13,40 @@ namespace TimeServer
         private static List<Socket> _clientSockets = new List<Socket>();
         private static Socket _serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
+        private static string PortName = "COM9";
+        private static int BaudRate = 9600;
+
+        private static SerialPort sp = new SerialPort(PortName, BaudRate, Parity.None, 8, StopBits.One);
+
         private static void Main(string[] args)
         {
             Console.Title = "Server";
+            OpenSerialPort();
             SetupServer();
             Console.ReadLine();
+        }
+
+        private static void OpenSerialPort()
+        {
+            sp.PortName = PortName;
+            sp.BaudRate = BaudRate;
+            sp.Open();
+
+            if (sp.IsOpen)
+            {
+                sp.ReadTimeout = 200;
+
+                //discard any stuff in the buffers
+                sp.DiscardOutBuffer();
+                sp.DiscardInBuffer();
+                Console.WriteLine("Serial port is opened...");
+            }
         }
 
         private static void SetupServer()
         {
             Console.WriteLine("setting up server...");
-            _serverSocket.Bind(new IPEndPoint(IPAddress.Loopback, 5678));
+            _serverSocket.Bind(new IPEndPoint(IPAddress.Loopback, 35000));
             _serverSocket.Listen(10);
             _serverSocket.BeginAccept(new AsyncCallback(AcceptCallback), null);
         }
