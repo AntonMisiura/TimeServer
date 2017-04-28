@@ -9,7 +9,11 @@ namespace TimeServer
 {
     internal class Program
     {
-        private static byte [] _buffer = new byte[1024];
+        private static byte[] _buffer = new byte[1024];
+        private static string _engineRPM = string.Empty;
+        private static string _roadSpeed = string.Empty;
+        private static string _throttlePosition = string.Empty;
+        private static string _engineTemperature = string.Empty;
         private static List<Socket> _clientSockets = new List<Socket>();
         private static Socket _serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
@@ -75,10 +79,15 @@ namespace TimeServer
 
                 string text = Encoding.ASCII.GetString(dataBuf);
                 Console.WriteLine("Text received: " + text);
+                string obdDataText = DateTime.Now.ToString() + "\n" + "\n" + "OBDSIM data: " + "\n" + "\n" + 
+                    "Engine RPM: " + _engineRPM + "\n" + "\n" +
+                    "Engine Temperature: " + _engineTemperature + "\n" + "\n" +
+                    "Road Speed: " + _roadSpeed + "\n" + "\n" +
+                    "Throttle Position: " + _throttlePosition + "\n";
 
-                if (text.ToLower() == "get time")
-                {
-                    SendData(DateTime.Now.ToString(), socket);
+                if (text.ToLower() == "get data")
+                {            
+                    SendData(obdDataText, socket);
                 }
                 else
                 {
@@ -167,8 +176,9 @@ namespace TimeServer
                 int engineRPM = (dataA + dataB) / 4;
                 var returnedEngineRPM = (Convert.ToString(engineRPM));
 
-                Console.WriteLine("Engine RPM: " + returnedEngineRPM);
+                _engineRPM = returnedEngineRPM;
                 Console.WriteLine("PID Data: " + pidData + " \t");
+                Console.WriteLine("Engine RPM: " + returnedEngineRPM);
             }
 
 
@@ -182,6 +192,7 @@ namespace TimeServer
                 int coolant = (int)Convert.ToInt32(pidData.Split(' ')[2], 16) - 40;
                 var pBarEngineTemp = (Convert.ToString(coolant + 40));
 
+                _engineTemperature = pBarEngineTemp;
                 Console.WriteLine("EngineTemperature: " + pBarEngineTemp);
             }
 
@@ -195,6 +206,7 @@ namespace TimeServer
                 int roadSpeed = (int)Convert.ToInt32(pidData.Split(' ')[2], 16);
                 var pBarRoadSpeed = (Convert.ToString(roadSpeed));
 
+                _roadSpeed = pBarRoadSpeed;
                 Console.WriteLine("Road Speed: " + pBarRoadSpeed);
             }
 
@@ -207,6 +219,7 @@ namespace TimeServer
                 int throttlePos = (int)Convert.ToInt32(pidData.Split(' ')[2], 16) * 100;
                 var pBarThrottlePosition = (Convert.ToString((throttlePos) / 255));
 
+                _throttlePosition = pBarThrottlePosition;
                 Console.WriteLine("ThrottlePosition: " + pBarThrottlePosition);
             }
         }
