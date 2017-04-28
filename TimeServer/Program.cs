@@ -13,15 +13,17 @@ namespace TimeServer
         private static List<Socket> _clientSockets = new List<Socket>();
         private static Socket _serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-        private static string PortName = "COM9";
         private static int BaudRate = 9600;
-
+        private static string PortName = "COM9";
         private static SerialPort sp = new SerialPort(PortName, BaudRate, Parity.None, 8, StopBits.One);
 
         private static void Main(string[] args)
         {
             Console.Title = "Server";
             OpenSerialPort();
+            Console.WriteLine("Please choose some data on the OBD simulator and push some button to accept...");
+            Console.ReadKey();
+            TimerOBDDataTick();
             SetupServer();
             Console.ReadLine();
         }
@@ -102,6 +104,111 @@ namespace TimeServer
         {
             var socket = (Socket)ar.AsyncState;
             socket.EndSend(ar);
+        }
+
+        private static string getData(string pid, string numRequests, int numBytes)
+        {
+            int buffSize = 20;                      //holds the streamed data
+            int iPid = 0;                           //occurence of pid in string
+            int count = 0;                          //how many bytes sent
+            byte[] pidBuff = new byte[buffSize];    // the pid data buffer
+            string retVal = string.Empty;           //string to be returned
+
+            //write pid requested
+            sp.Write(pid + numRequests + "\r");
+            
+            //replace the pid request with 41 to match the OBD response
+            pid = pid.Replace("01", "41");
+
+            bool isContinue = true;
+            iPid = 0;
+
+            while (isContinue)
+            {
+                //loop until a ">" is recd. End of line char with the ELM327
+                //or 200 msec timeout and no read, exit the loop and timer function too
+                try { count = sp.Read(pidBuff, 0, buffSize); }
+                catch (TimeoutException) { return (retVal = "Time"); }
+                
+                retVal += System.Text.Encoding.Default.GetString(pidBuff, 0, count);
+
+                if (retVal.Contains(">"))
+                {
+                    isContinue = false;
+                }
+            }
+
+            //Get the data and put in array  and convert to a string and return string          
+            iPid = retVal.IndexOf(pid);
+
+            if ((iPid == -1) || (retVal.Contains("DATA")) || (retVal.Length < 7))
+            {
+                return (retVal = "-1");
+            }
+
+            retVal = retVal.Substring(iPid, (5 + 3 * numBytes));
+            return (retVal);
+        }
+        
+        private static void TimerOBDDataTick()
+        {
+            string pidData = string.Empty;
+
+            // **** Engine RPM - 0C, request 1 reply, 2 bytes data
+            pidData = getData("01 0C", " 1", 2);
+
+            if (pidData != "-1")
+            {
+                if (pidData == "Time") return;
+                //Engine RPM 
+                int dataA = (int)Convert.ToInt32(pidData.Split(' ')[2], 16) * 256;
+                int dataB = (int)Convert.ToInt32(pidData.Split(' ')[3], 16);
+
+                int engineRPM = (dataA + dataB) / 4;
+                var returnedEngineRPM = (Convert.ToString(engineRPM));
+
+                Console.WriteLine("Engine RPM: " + returnedEngineRPM);
+                Console.WriteLine("PID Data: " + pidData + " \t");
+            }
+
+
+            // *** Engine coolant, request 1 reply, 1 byte of data
+            pidData = getData("01 05", " 1", 1);
+
+            if (pidData != "-1")
+            {
+                if (pidData == "Time") return;
+                //Engine coolant
+                int coolant = (int)Convert.ToInt32(pidData.Split(' ')[2], 16) - 40;
+                var pBarEngineTemp = (Convert.ToString(coolant + 40));
+
+                Console.WriteLine("EngineTemperature: " + pBarEngineTemp);
+            }
+
+            // **** Road Speed, request 1 reply, 1 byte of data
+            pidData = getData("01 0D", " 1", 1);
+
+            if (pidData != "-1")
+            {
+                if (pidData == "Time") return;
+                //RoadSpeed Speed
+                int roadSpeed = (int)Convert.ToInt32(pidData.Split(' ')[2], 16);
+                var pBarRoadSpeed = (Convert.ToString(roadSpeed));
+
+                Console.WriteLine("Road Speed: " + pBarRoadSpeed);
+            }
+
+            //Throttle Position, request 1 reply, 1 byte Data
+            pidData = getData("01 11", "1", 1);
+
+            if (pidData != "-1")
+            {
+                if (pidData == "Time") return;
+                int throttlePos = (int)Convert.ToInt32(pidData.Split(' ')[2], 16) * 100;
+                var pBarThrottlePosition = (Convert.ToString((throttlePos) / 255));
+
+                Console.WriteLine("ThrottlePosition: " + pBarThrottlePosition);
+            }
         }
     }
 }
