@@ -4,7 +4,7 @@ using TimeServer.Contract;
 
 namespace TimeServer.Impl.Connection
 {
-    class OdbSerialPortConnection : IOdbConnection
+    public class OdbSerialPortConnection : IOdbConnection
     {
         private OdbSerialPortSettings Config => OdbSerialPortSettings.Instance;
         private SerialPort Port = null;
@@ -17,6 +17,7 @@ namespace TimeServer.Impl.Connection
                 {
                     Port = new SerialPort(Config.PortName, Config.BaudRate, Config.Parity, Config.DataBits, Config.StopBits);
                     Port.Open();
+                    Console.WriteLine("Serial port is opened.");
                 }
 
                 return Port.IsOpen;
@@ -36,6 +37,7 @@ namespace TimeServer.Impl.Connection
                 {
                     Port.Close();
                     Port = null;
+                    Console.WriteLine("Serial port is closed.");
                 }
             }
             catch (Exception)
@@ -46,11 +48,13 @@ namespace TimeServer.Impl.Connection
 
         public int Read(byte[] buffer, int offset, int count)
         {
+            Console.WriteLine("Reading data...");
             return Port?.Read(buffer, offset, count) ?? -1;
         }
 
         public void Write(string data)
         {
+            Console.WriteLine("Writing data...");
             Port?.Write(data);
         }
 

@@ -46,8 +46,14 @@
   <ItemGroup>
     <Compile Include="Contract\IOdbCommand.cs" />
     <Compile Include="Contract\IOdbConnection.cs" />
+    <Compile Include="Impl\Command\CommandBase.cs" />
+    <Compile Include="Impl\Command\EngineRpmCommand.cs" />
+    <Compile Include="Impl\Command\EngineTemperatureCommand.cs" />
+    <Compile Include="Impl\Command\RoadSpeedCommand.cs" />
+    <Compile Include="Impl\Command\ThrottlePositionCommand.cs" />
     <Compile Include="Impl\Connection\OdbSerialPortConnection.cs" />
     <Compile Include="Impl\Connection\OdbSerialPortSettings.cs" />
+    <Compile Include="OdbManager.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProgramOrigin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
