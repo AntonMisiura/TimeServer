@@ -34,6 +34,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -45,7 +46,13 @@
   <ItemGroup>
     <Compile Include="Contracts\IDataOperations.cs" />
     <Compile Include="Contracts\ITimerOBDDataTick.cs" />
+    <Compile Include="Contract\IOdbCommand.cs" />
+    <Compile Include="Contract\IOdbConnection.cs" />
+    <Compile Include="Impl\Connection\OdbSerialPortConnection.cs" />
+    <Compile Include="Impl\Connection\OdbSerialPortSettings.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="ProgramRetired.cs" />
+    <Compile Include="ProgramOrigin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Repo\BaseConst.cs" />
     <Compile Include="Repo\DataOperations.cs" />

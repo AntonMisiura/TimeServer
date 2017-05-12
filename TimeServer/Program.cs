@@ -1,120 +1,51 @@
-﻿using System;
-using System.Net;
-using System.Text;
-using System.IO.Ports;
-using TimeServer.Repo;
-using System.Net.Sockets;
-using TimeServer.Contracts;
-using System.Collections.Generic;
-
+﻿
+using TimeServer.Contract;
+using TimeServer.Impl.Command;
+using TimeServer.Impl.Connection;
 
 namespace TimeServer
 {
-    internal class Program : BaseConst
+    class OdbManager
     {
-        private static IDataOperations _dataOperations;
+        private IOdbCommand[] commands;
+        private IOdbConnection connection;
 
-        private static byte[] _buffer = new byte[1024];
-        private static List<Socket> _clientSockets = new List<Socket>();
-        private static Socket _serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-        public Program(IDataOperations dataOperations)
+        public OdbManager()
         {
-            _dataOperations = dataOperations;
-        }  
-
-        private static void Main(string[] args)
-        {
-            Console.Title = "Server";
-            OpenSerialPort();
-            Console.WriteLine("Please choose some data on the OBD simulator and push some button to accept...");
-            Console.ReadKey();
-            _dataOperations.ShowOBDData();
-            SetupServer();
-            Console.ReadLine();
-        }
-
-        private static void OpenSerialPort()
-        {
-            SerialPort.PortName = PortName;
-            SerialPort.BaudRate = BaudRate;
-            SerialPort.Open();
-
-            if (SerialPort.IsOpen)
+            // Load below code from configuration or inject
+            connection = new OdbSerialPortConnection();
+            commands = new IOdbCommand[]
             {
-                SerialPort.ReadTimeout = 200;
-
-                //discard any stuff in the buffers
-                SerialPort.DiscardOutBuffer();
-                SerialPort.DiscardInBuffer();
-                Console.WriteLine("Serial port is opened...");
-            }
+                new EngineRpmCommand(),
+                new EngineTemperatureCommand(),
+            };
         }
 
-        private static void SetupServer()
+        public string Execute()
         {
-            Console.WriteLine("setting up server...");
-            _serverSocket.Bind(new IPEndPoint(IPAddress.Loopback, 35000));
-            _serverSocket.Listen(10);
-            _serverSocket.BeginAccept(new AsyncCallback(AcceptCallback), null);
-        }
+            connection.Open();
 
-        private static void AcceptCallback(IAsyncResult ar)
-        {
-            var socket = _serverSocket.EndAccept(ar);
-            _clientSockets.Add(socket);
-            Console.WriteLine("Client connected");
-            socket.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), socket);
-            _serverSocket.BeginAccept(new AsyncCallback(AcceptCallback), null);
-        }
-
-        private static void ReceiveCallback(IAsyncResult ar)
-        {
-
-            Socket socket = (Socket) ar.AsyncState;
-
-            try
+            var response = string.Empty;
+            foreach (var command in commands)
             {
-                int received = socket.EndReceive(ar);
-                byte[] dataBuf = new byte[received];
-                Array.Copy(_buffer, dataBuf, received);
-
-                string text = Encoding.ASCII.GetString(dataBuf);
-                Console.WriteLine("Text received: " + text);
-                string obdDataText = DateTime.Now.ToString() + "\n" + "\n" + "OBDSIM data: " + "\n" + "\n" + 
-                    "Engine RPM: " + EngineRPM + "\n" + "\n" +
-                    "Engine Temperature: " + EngineTemperature + "\n" + "\n" +
-                    "Road Speed: " + RoadSpeed + "\n" + "\n" +
-                    "Throttle Position: " + ThrottlePosition + "\n";
-
-                if (text.ToLower() == "get data")
-                {            
-                    SendData(obdDataText, socket);
-                }
-                else
-                {
-                    SendData("invalid request", socket);
-                }
+                command.Execute(connection);
+                response += $"{command}\n";
             }
-            catch
-            {
-                Console.WriteLine("client disconnected");
-                socket.Close();
-                socket.Dispose();
-            }
-        }
 
-        private static void SendData(string toString, Socket socket)
-        {
-            var data = Encoding.ASCII.GetBytes(toString);
-            socket.BeginSend(data, 0, data.Length, SocketFlags.None, new AsyncCallback(SendCallback), socket);
-            socket.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), socket);
-        }
+            connection.Close();
 
-        private static void SendCallback(IAsyncResult ar)
+            return response;
+        }
+    }
+
+    internal class Program
+    {
+        public static void Main(string[] args)
         {
-            var socket = (Socket)ar.AsyncState;
-            socket.EndSend(ar);
-        }        
+            OdbManager manager = new OdbManager();
+            var response = manager.Execute();
+
+            return;
+        }
     }
 }

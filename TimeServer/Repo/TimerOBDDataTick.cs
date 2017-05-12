@@ -20,7 +20,7 @@ namespace TimeServer.Repo
             if (PIDData != "-1")
             {
                 if (PIDData == "Time") return;
-                //Engine RPM 
+                //Engine RPM
                 int dataA = (int)Convert.ToInt32(PIDData.Split(' ')[2], 16) * 256;
                 int dataB = (int)Convert.ToInt32(PIDData.Split(' ')[3], 16);
 
