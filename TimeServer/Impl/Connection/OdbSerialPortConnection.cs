@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO.Ports;
+using Microsoft.Extensions.Logging;
 using TimeServer.Contract;
 
 namespace TimeServer.Impl.Connection
@@ -8,6 +9,17 @@ namespace TimeServer.Impl.Connection
     {
         private OdbSerialPortSettings Config => OdbSerialPortSettings.Instance;
         private SerialPort Port = null;
+        private ILogger _logger;
+
+        public OdbSerialPortConnection(ILogger logger)
+        {
+            _logger = logger;
+        }
+
+        public OdbSerialPortConnection()
+        {
+            
+        }
 
         public bool Open()
         {
@@ -24,7 +36,7 @@ namespace TimeServer.Impl.Connection
             }
             catch (Exception ex)
             {
-                // Logging
+                _logger.LogError($"Failed to open port: {ex.Message}");
                 return false;
             }
         }
@@ -40,9 +52,9 @@ namespace TimeServer.Impl.Connection
                     Console.WriteLine("Serial port is closed.");
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Logging
+                _logger.LogError($"Failed to close port: {ex.Message}");
             }
         }
 

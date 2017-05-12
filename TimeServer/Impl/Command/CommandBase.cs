@@ -3,6 +3,7 @@ using System;
 using System.Text;
 using TimeServer.Contract;
 using TimeServer.Impl.Command;
+using Microsoft.Extensions.Logging;
 
 namespace TimeServer.Impl.Command
 {
@@ -13,6 +14,18 @@ namespace TimeServer.Impl.Command
         public int BytesNum { get; protected set; }
         public int RequestsNum { get; protected set; }
 
+        private ILogger _logger;
+
+        public CommandBase(ILogger logger)
+        {
+            _logger = logger;
+        }
+
+        protected CommandBase()
+        {
+            
+        }
+
         public bool Execute(IOdbConnection connection)
         {
             try
@@ -22,7 +35,7 @@ namespace TimeServer.Impl.Command
             }
             catch (Exception ex)
             {
-                // Logging
+                _logger.LogError($"Failed to get and parse data: {ex.Message}");
                 return false;
             }
         }
@@ -48,7 +61,8 @@ namespace TimeServer.Impl.Command
                 }
                 catch (TimeoutException ex)
                 {
-                    // Logging
+                    _logger.LogError($"Failed to read data: {ex.Message}");
+
                     response = string.Empty;
                     break;
                 }
